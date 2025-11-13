@@ -20,12 +20,29 @@ export default function ResumeCheckPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Check file type
-      const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
-      if (!validTypes.includes(selectedFile.type) && !selectedFile.name.endsWith('.pdf') && !selectedFile.name.endsWith('.docx') && !selectedFile.name.endsWith('.doc')) {
-        setError('Please upload a PDF or DOCX file');
+      // Check file type - accept PDF, DOCX, DOC, and TXT
+      const fileName = selectedFile.name.toLowerCase();
+      const validExtensions = ['.pdf', '.docx', '.doc', '.txt'];
+      const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+
+      const validTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'text/plain'
+      ];
+
+      if (!validTypes.includes(selectedFile.type) && !hasValidExtension) {
+        setError('Please upload a PDF, DOCX, or TXT file');
         return;
       }
+
+      // Check file size (max 10MB)
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        setError('File too large. Maximum size is 10MB.');
+        return;
+      }
+
       setFile(selectedFile);
       setError(null);
     }
@@ -80,7 +97,7 @@ export default function ResumeCheckPage() {
           <CardHeader>
             <CardTitle>Upload Your Resume</CardTitle>
             <CardDescription>
-              Upload a PDF or DOCX file. Optionally paste a job description to get tailored feedback.
+              Upload a PDF, DOCX, or TXT file. Optionally paste a job description to get tailored feedback.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -90,7 +107,7 @@ export default function ResumeCheckPage() {
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors">
                 <input
                   type="file"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf,.doc,.docx,.txt"
                   onChange={handleFileChange}
                   className="hidden"
                   id="resume-upload"
@@ -115,7 +132,7 @@ export default function ResumeCheckPage() {
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        PDF or DOCX (Max 5MB)
+                        PDF, DOCX, or TXT (Max 10MB)
                       </p>
                     </>
                   )}

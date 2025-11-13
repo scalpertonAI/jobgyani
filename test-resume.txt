@@ -1,0 +1,68 @@
+John Doe
+Software Engineer
+john.doe@email.com | +91-9876543210 | linkedin.com/in/johndoe
+
+PROFESSIONAL SUMMARY
+Experienced Full Stack Developer with 5+ years of expertise in building scalable web applications using React, Node.js, and cloud technologies. Passionate about creating efficient, user-friendly solutions and leading development teams.
+
+TECHNICAL SKILLS
+• Languages: JavaScript, TypeScript, Python, Java
+• Frontend: React, Next.js, Vue.js, HTML5, CSS3, Tailwind CSS
+• Backend: Node.js, Express, Django, Spring Boot
+• Databases: PostgreSQL, MongoDB, Redis, MySQL
+• Cloud & DevOps: AWS, Docker, Kubernetes, CI/CD, Jenkins
+• Tools: Git, VS Code, Figma, Jira, Postman
+
+PROFESSIONAL EXPERIENCE
+
+Senior Software Engineer | Tech Solutions Inc. | Jan 2021 - Present
+• Led development of a SaaS platform serving 50,000+ users, improving performance by 40%
+• Architected microservices infrastructure using Node.js and Docker, reducing deployment time by 60%
+• Mentored team of 5 junior developers and conducted code reviews
+• Implemented CI/CD pipelines using Jenkins and GitHub Actions
+• Collaborated with product team to define technical requirements and roadmap
+
+Full Stack Developer | Startup Innovations | Jun 2019 - Dec 2020
+• Built e-commerce platform from scratch using React and Node.js
+• Integrated payment gateways (Stripe, PayPal) and shipping APIs
+• Optimized database queries, reducing page load time by 50%
+• Developed RESTful APIs serving mobile and web applications
+• Implemented authentication using JWT and OAuth 2.0
+
+Software Developer | Digital Agency | Jan 2018 - May 2019
+• Developed responsive websites for 20+ clients using React and WordPress
+• Created custom WordPress plugins and themes
+• Performed unit testing and bug fixes
+• Participated in client meetings and requirement gathering
+
+EDUCATION
+
+Bachelor of Technology in Computer Science
+State University | 2014 - 2018 | GPA: 3.8/4.0
+
+CERTIFICATIONS
+• AWS Certified Solutions Architect - Associate
+• Google Cloud Professional Developer
+• MongoDB Certified Developer
+
+PROJECTS
+
+Real-time Chat Application
+• Built WebSocket-based chat app using Socket.io and React
+• Implemented message encryption and file sharing
+• Deployed on AWS with auto-scaling
+
+AI-Powered Resume Analyzer
+• Created ML model to analyze resumes and provide feedback
+• Used Python, TensorFlow, and NLP techniques
+• Achieved 85% accuracy in keyword matching
+
+ACHIEVEMENTS
+• Won 1st place in National Hackathon 2020
+• Speaker at React Conference 2022
+• Open source contributor with 500+ GitHub stars
+• Published 10+ technical articles on Medium
+
+LANGUAGES
+• English - Fluent
+• Hindi - Native

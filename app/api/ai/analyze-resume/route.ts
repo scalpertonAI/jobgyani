@@ -4,24 +4,83 @@ import { analyzeResume } from '@/lib/openai';
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
+    console.log('Starting PDF extraction, buffer size:', buffer.length);
+
+    if (buffer.length === 0) {
+      throw new Error('Empty PDF buffer');
+    }
+
     // Use require for CommonJS modules in Node.js environment
     const pdfParse = require('pdf-parse');
-    const data = await pdfParse(buffer);
+
+    // Parse the PDF
+    const data = await pdfParse(buffer, {
+      max: 0, // Parse all pages
+    });
+
+    console.log('PDF parsed successfully, text length:', data.text?.length || 0);
+    console.log('Number of pages:', data.numpages);
+
+    if (!data.text || data.text.trim().length === 0) {
+      throw new Error('No text content found in PDF. The PDF might be image-based or empty.');
+    }
+
     return data.text;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error parsing PDF:', error);
-    throw new Error('Failed to extract text from PDF. Please ensure the PDF is not encrypted or corrupted.');
+    console.error('Error details:', error.message, error.stack);
+
+    // Provide more helpful error messages
+    if (error.message?.includes('Invalid PDF')) {
+      throw new Error('Invalid or corrupted PDF file. Please try a different file.');
+    } else if (error.message?.includes('encrypted')) {
+      throw new Error('This PDF is password-protected. Please upload an unprotected version.');
+    } else if (error.message?.includes('No text content')) {
+      throw new Error(error.message);
+    } else {
+      throw new Error('Failed to extract text from PDF. The file might be corrupted, image-based, or in an unsupported format. Try converting it to DOCX or TXT.');
+    }
   }
 }
 
 async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
   try {
+    console.log('Starting DOCX extraction, buffer size:', buffer.length);
+
+    if (buffer.length === 0) {
+      throw new Error('Empty DOCX buffer');
+    }
+
     const mammoth = require('mammoth');
     const result = await mammoth.extractRawText({ buffer });
+
+    console.log('DOCX parsed successfully, text length:', result.value?.length || 0);
+
+    if (!result.value || result.value.trim().length === 0) {
+      throw new Error('No text content found in DOCX. The document might be empty.');
+    }
+
     return result.value;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error parsing DOCX:', error);
-    throw new Error('Failed to extract text from DOCX. Please ensure the file is a valid Word document.');
+    console.error('Error details:', error.message, error.stack);
+
+    if (error.message?.includes('No text content')) {
+      throw new Error(error.message);
+    } else {
+      throw new Error('Failed to extract text from DOCX. The file might be corrupted or in an unsupported format. Try saving it as .docx (not .doc).');
+    }
+  }
+}
+
+async function extractTextFromPlainText(buffer: Buffer): Promise<string> {
+  try {
+    const text = buffer.toString('utf-8');
+    console.log('Plain text extracted, length:', text.length);
+    return text;
+  } catch (error: any) {
+    console.error('Error parsing plain text:', error);
+    throw new Error('Failed to read text file.');
   }
 }
 
@@ -47,6 +106,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    console.log('Processing file:', file.name, 'Size:', file.size, 'Type:', file.type);
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 10MB.' },
+        { status: 400 }
+      );
+    }
+
     // Check user profile for free check usage
     const { data: profile } = await supabase
       .from('profiles')
@@ -68,24 +137,45 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    console.log('Buffer created, size:', buffer.length);
+
     // Extract text based on file type
     let resumeText: string;
     const fileName = file.name.toLowerCase();
 
-    if (fileName.endsWith('.pdf')) {
-      resumeText = await extractTextFromPDF(buffer);
-    } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-      resumeText = await extractTextFromDOCX(buffer);
-    } else {
+    try {
+      if (fileName.endsWith('.pdf')) {
+        resumeText = await extractTextFromPDF(buffer);
+      } else if (fileName.endsWith('.docx')) {
+        resumeText = await extractTextFromDOCX(buffer);
+      } else if (fileName.endsWith('.doc')) {
+        // Old .doc format - try DOCX parser (works sometimes)
+        resumeText = await extractTextFromDOCX(buffer);
+      } else if (fileName.endsWith('.txt')) {
+        resumeText = await extractTextFromPlainText(buffer);
+      } else {
+        return NextResponse.json(
+          { error: 'Unsupported file format. Please upload PDF, DOCX, or TXT file.' },
+          { status: 400 }
+        );
+      }
+    } catch (extractError: any) {
+      console.error('Text extraction failed:', extractError);
       return NextResponse.json(
-        { error: 'Unsupported file format. Please upload PDF or DOCX.' },
+        { error: extractError.message || 'Failed to extract text from file.' },
         { status: 400 }
       );
     }
 
-    if (!resumeText || resumeText.trim().length < 100) {
+    console.log('Text extracted, length:', resumeText.length);
+    console.log('Text preview:', resumeText.substring(0, 200));
+
+    // Validate extracted text (reduced minimum to 50 characters)
+    if (!resumeText || resumeText.trim().length < 50) {
       return NextResponse.json(
-        { error: 'Could not extract enough text from the file. Please check your resume.' },
+        {
+          error: `Could not extract enough text from the file (found ${resumeText?.trim().length || 0} characters, need at least 50). The file might be image-based, empty, or corrupted. Try converting to a text-based format.`,
+        },
         { status: 400 }
       );
     }
