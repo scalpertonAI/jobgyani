@@ -206,16 +206,14 @@ CREATE POLICY "Anyone can view interview questions" ON interview_questions
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, created_at, updated_at)
+  INSERT INTO public.profiles (id, full_name)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
-    NOW(),
-    NOW()
+    COALESCE(NEW.raw_user_meta_data->>'full_name', '')
   );
 
-  INSERT INTO public.user_streaks (user_id, created_at, updated_at)
-  VALUES (NEW.id, NOW(), NOW());
+  INSERT INTO public.user_streaks (user_id)
+  VALUES (NEW.id);
 
   RETURN NEW;
 END;
