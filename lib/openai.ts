@@ -127,19 +127,13 @@ Respond in JSON format with this exact structure:
 }
 
 export interface JobDescriptionAnalysis {
-  key_requirements: {
-    must_have: string[];
-    nice_to_have: string[];
-  };
+  key_requirements: string[];
+  required_skills: string[];
+  nice_to_have: string[];
   red_flags: string[];
-  culture_indicators: string[];
-  estimated_salary_range: {
-    min: number;
-    max: number;
-    currency: string;
-  } | null;
-  custom_prep_questions: string[];
-  role_summary: string;
+  culture_signals: string;
+  application_tips: string[];
+  estimated_salary_range: string;
 }
 
 export async function analyzeJobDescription(
@@ -151,28 +145,23 @@ Job Description:
 ${jobDescription}
 
 Provide:
-1. Key requirements (must-have vs nice-to-have skills)
-2. Any red flags in the posting
-3. Culture indicators from the description
-4. Estimated salary range (if possible to infer from role and requirements)
-5. 5-7 custom interview prep questions likely for this role
-6. Brief role summary
+1. Key requirements (5-7 most important qualifications)
+2. Required technical and soft skills (as individual keywords/skills)
+3. Nice-to-have skills (bonus qualifications)
+4. Any red flags in the posting
+5. What the job posting signals about company culture (1-2 sentences)
+6. 5-7 application tips for tailoring resume/cover letter
+7. Estimated salary range in INR (as a readable string like "₹15-25 LPA")
 
 Respond in JSON format with this exact structure:
 {
-  "key_requirements": {
-    "must_have": ["requirement1", "requirement2", ...],
-    "nice_to_have": ["requirement1", "requirement2", ...]
-  },
+  "key_requirements": ["requirement1", "requirement2", ...],
+  "required_skills": ["skill1", "skill2", ...],
+  "nice_to_have": ["skill1", "skill2", ...],
   "red_flags": ["flag1", "flag2", ...],
-  "culture_indicators": ["indicator1", "indicator2", ...],
-  "estimated_salary_range": {
-    "min": number,
-    "max": number,
-    "currency": "INR"
-  },
-  "custom_prep_questions": ["question1", "question2", ...],
-  "role_summary": "brief summary"
+  "culture_signals": "string description of culture",
+  "application_tips": ["tip1", "tip2", ...],
+  "estimated_salary_range": "₹X-Y LPA"
 }`;
 
   const response = await openai.chat.completions.create({

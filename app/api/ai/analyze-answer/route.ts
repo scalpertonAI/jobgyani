@@ -15,28 +15,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { questionId, answer, dailyQuestionId } = await request.json();
+    const { questionId, question, answer, dailyQuestionId } = await request.json();
 
-    if (!questionId || !answer) {
+    // For Interview Gym, question text is provided directly
+    let questionText = question;
+
+    // For daily practice, get question from DB
+    if (questionId && !questionText) {
+      const { data: questionData, error: questionError } = await supabase
+        .from('interview_questions')
+        .select('*')
+        .eq('id', questionId)
+        .single();
+
+      if (questionError || !questionData) {
+        return NextResponse.json({ error: 'Question not found' }, { status: 404 });
+      }
+
+      questionText = questionData.question;
+    }
+
+    if (!questionText || !answer) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Get the question
-    const { data: question, error: questionError } = await supabase
-      .from('interview_questions')
-      .select('*')
-      .eq('id', questionId)
-      .single();
-
-    if (questionError || !question) {
-      return NextResponse.json({ error: 'Question not found' }, { status: 404 });
-    }
-
     // Analyze the answer using OpenAI
-    const analysis = await analyzeInterviewAnswer(question.question, answer);
+    const analysis = await analyzeInterviewAnswer(questionText, answer);
 
     // If this is a daily question, update it
     if (dailyQuestionId) {
@@ -63,9 +70,23 @@ export async function POST(request: NextRequest) {
       if (streakError) {
         console.error('Error updating streak:', streakError);
       }
+    } else if (questionId) {
+      // If this is Interview Gym practice, save to practice_sessions
+      const { error: practiceError } = await supabase
+        .from('practice_sessions')
+        .insert({
+          user_id: user.id,
+          question_id: questionId,
+          answer_text: answer,
+          ai_feedback: analysis,
+        });
+
+      if (practiceError) {
+        console.error('Error saving practice session:', practiceError);
+      }
     }
 
-    return NextResponse.json({ success: true, analysis });
+    return NextResponse.json({ success: true, feedback: analysis });
   } catch (error: any) {
     console.error('Error analyzing answer:', error);
     return NextResponse.json(

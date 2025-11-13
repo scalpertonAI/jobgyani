@@ -18,11 +18,36 @@ export default async function DashboardLayout({
   }
 
   // Get user profile
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
+
+  // Create profile if it doesn't exist (fallback)
+  if (!profile) {
+    await supabase.from("profiles").insert({
+      id: user.id,
+      full_name: user.user_metadata?.full_name || '',
+      subscription_tier: 'free',
+      free_resume_check_used: false,
+    });
+
+    await supabase.from("user_streaks").insert({
+      user_id: user.id,
+      current_streak: 0,
+      longest_streak: 0,
+    });
+
+    // Fetch the newly created profile
+    const result = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    profile = result.data;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

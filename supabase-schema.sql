@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   job_search_status TEXT CHECK (job_search_status IN ('actively_looking', 'casually_browsing', 'employed')),
   subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'sprint', 'pro')),
   stripe_customer_id TEXT UNIQUE,
+  razorpay_payment_id TEXT,
+  razorpay_subscription_id TEXT,
   subscription_status TEXT CHECK (subscription_status IN ('active', 'canceled', 'past_due', 'trialing')),
   free_resume_check_used BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -89,6 +91,21 @@ CREATE TABLE IF NOT EXISTS practice_sessions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Payment Orders (for Razorpay transactions)
+CREATE TABLE IF NOT EXISTS payment_orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  razorpay_order_id TEXT UNIQUE NOT NULL,
+  razorpay_payment_id TEXT,
+  razorpay_signature TEXT,
+  amount INTEGER NOT NULL,
+  currency TEXT DEFAULT 'INR',
+  plan TEXT NOT NULL,
+  status TEXT DEFAULT 'created' CHECK (status IN ('created', 'completed', 'failed')),
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_daily_questions_user_date ON daily_questions(user_id, assigned_date);
 CREATE INDEX IF NOT EXISTS idx_daily_questions_question ON daily_questions(question_id);
@@ -98,6 +115,8 @@ CREATE INDEX IF NOT EXISTS idx_practice_sessions_user ON practice_sessions(user_
 CREATE INDEX IF NOT EXISTS idx_resumes_user ON resumes(user_id);
 CREATE INDEX IF NOT EXISTS idx_interview_questions_category ON interview_questions(category);
 CREATE INDEX IF NOT EXISTS idx_profiles_subscription ON profiles(subscription_tier, subscription_status);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_user ON payment_orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_razorpay ON payment_orders(razorpay_order_id);
 
 -- Enable Row Level Security
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -107,6 +126,7 @@ ALTER TABLE resumes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE job_applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE practice_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE interview_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_orders ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for profiles
 CREATE POLICY "Users can view own profile" ON profiles
@@ -167,6 +187,16 @@ CREATE POLICY "Users can view own practice sessions" ON practice_sessions
 
 CREATE POLICY "Users can insert own practice sessions" ON practice_sessions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- RLS Policies for payment_orders
+CREATE POLICY "Users can view own payment orders" ON payment_orders
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own payment orders" ON payment_orders
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own payment orders" ON payment_orders
+  FOR UPDATE USING (auth.uid() = user_id);
 
 -- RLS Policies for interview_questions (public read)
 CREATE POLICY "Anyone can view interview questions" ON interview_questions
