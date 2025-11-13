@@ -3,14 +3,26 @@ import { createClient } from '@/lib/supabase/server';
 import { analyzeResume } from '@/lib/openai';
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  // For now, return a placeholder. In production, use a PDF parsing library
-  // or extract text on the client side before uploading
-  return "PDF text extraction - implement with pdf-parse or similar library";
+  try {
+    // Use require for CommonJS modules in Node.js environment
+    const pdfParse = require('pdf-parse');
+    const data = await pdfParse(buffer);
+    return data.text;
+  } catch (error) {
+    console.error('Error parsing PDF:', error);
+    throw new Error('Failed to extract text from PDF. Please ensure the PDF is not encrypted or corrupted.');
+  }
 }
 
 async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
-  // For now, return a placeholder. In production, use mammoth or similar
-  return "DOCX text extraction - implement with mammoth or similar library";
+  try {
+    const mammoth = require('mammoth');
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  } catch (error) {
+    console.error('Error parsing DOCX:', error);
+    throw new Error('Failed to extract text from DOCX. Please ensure the file is a valid Word document.');
+  }
 }
 
 export async function POST(request: NextRequest) {
