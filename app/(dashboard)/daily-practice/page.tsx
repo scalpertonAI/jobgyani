@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Flame, CheckCircle2, TrendingUp, Target, Lightbulb } from "lucide-react";
-import type { InterviewAnswerAnalysis } from "@/lib/anthropic";
+import type { InterviewAnswerAnalysis } from "@/lib/openai";
 
 interface DailyQuestion {
   id: string;

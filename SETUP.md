@@ -4,8 +4,8 @@
 
 - Node.js 18+ installed
 - A Supabase account (free tier works)
-- An Anthropic API key
-- A Stripe account (for payments)
+- An OpenAI API key
+- A Razorpay account (for payments)
 
 ## 1. Supabase Setup
 
@@ -46,13 +46,14 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# Anthropic
-ANTHROPIC_API_KEY=your_anthropic_api_key
+# OpenAI
+OPENAI_API_KEY=your_openai_api_key
 
-# Stripe
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+# Razorpay
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+RAZORPAY_WEBHOOK_SECRET=your_razorpay_webhook_secret
+NEXT_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_key_id
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -80,19 +81,20 @@ After setting up the database, you can run the seed script to populate interview
 npm run seed
 ```
 
-## 6. Stripe Setup (for Payments)
+## 6. Razorpay Setup (for Payments)
 
-1. Create products in Stripe Dashboard:
-   - Job Sprint Monthly: $29/month recurring
-   - Job Sprint Pro: $49/month recurring (optional)
+1. Create plans in Razorpay Dashboard:
+   - Job Sprint Monthly: ₹2900/month recurring
+   - Job Sprint Quarterly: ₹7900 (3 months)
+   - Job Sprint Pro: ₹4900/month recurring (optional)
 
 2. Set up webhooks:
-   - Add webhook endpoint: `https://your-domain.com/api/stripe/webhooks`
+   - Add webhook endpoint: `https://your-domain.com/api/razorpay/webhooks`
    - Select events:
-     - `checkout.session.completed`
-     - `customer.subscription.updated`
-     - `customer.subscription.deleted`
-     - `invoice.payment_failed`
+     - `subscription.activated`
+     - `subscription.charged`
+     - `subscription.cancelled`
+     - `payment.failed`
 
 ## 7. Deploy to Vercel
 
@@ -117,22 +119,26 @@ npm install -D @tailwindcss/postcss
 - Ensure your Supabase project is active
 - Check that RLS policies are enabled
 
-### Stripe Webhooks Not Working
+### Razorpay Webhooks Not Working
 
 - Make sure you're using the correct webhook secret
-- Test webhooks using Stripe CLI for local development:
+- Verify webhook signature in your route handler
+- Check Razorpay dashboard for webhook logs
+- Test webhooks using ngrok for local development:
 
 ```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhooks
+ngrok http 3000
+# Use the ngrok URL as webhook endpoint
 ```
 
 ## Features Checklist
 
 - [x] Authentication (Signup/Login)
 - [x] Daily Interview Question
-- [x] Resume Analysis
-- [x] Question Library
-- [x] Stripe Integration
+- [x] AI Integration (OpenAI GPT-4)
+- [ ] Resume Analysis
+- [ ] Question Library
+- [ ] Razorpay Integration
 - [ ] Interview Gym (Paid)
 - [ ] Job Decoder (Paid)
 - [ ] Application Tracker (Paid)

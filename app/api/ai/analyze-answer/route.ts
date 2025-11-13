@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { analyzeInterviewAnswer } from '@/lib/anthropic';
+import { analyzeInterviewAnswer } from '@/lib/openai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }
 
-    // Analyze the answer using Claude
+    // Analyze the answer using OpenAI
     const analysis = await analyzeInterviewAnswer(question.question, answer);
 
     // If this is a daily question, update it

@@ -55,7 +55,7 @@ A comprehensive job preparation platform with freemium model. Users practice int
   - 10 Culture Fit questions
 - ✅ Question difficulty levels (easy, medium, hard)
 - ✅ Answer submission with character count
-- ✅ AI-powered analysis using Claude 3.5 Sonnet:
+- ✅ AI-powered analysis using OpenAI GPT-4:
   - STAR method detection
   - Confidence scoring (1-10)
   - Filler word counting
@@ -66,10 +66,11 @@ A comprehensive job preparation platform with freemium model. Users practice int
 - ✅ Visual feedback and progress indicators
 
 #### 6. **AI Integration**
-- ✅ Anthropic Claude 3.5 Sonnet integration
+- ✅ OpenAI GPT-4 integration
 - ✅ Interview answer analysis API
 - ✅ Structured feedback in JSON format
 - ✅ Resume analysis functionality ready
+- ✅ Job description analysis ready
 
 #### 7. **Seed Data**
 - ✅ 100 interview questions with:
@@ -135,7 +136,7 @@ A comprehensive job preparation platform with freemium model. Users practice int
    - [ ] Pipeline dashboard
 
 #### Phase 4: Monetization
-8. **Stripe Integration**
+8. **Razorpay Integration**
    - [ ] Payment processing
    - [ ] Subscription management
    - [ ] Webhook handling
@@ -170,7 +171,8 @@ A comprehensive job preparation platform with freemium model. Users practice int
 ### Prerequisites
 - Node.js 18+
 - A Supabase account
-- An Anthropic API key
+- An OpenAI API key
+- A Razorpay account (for payments)
 
 ### Setup
 
@@ -196,7 +198,9 @@ A comprehensive job preparation platform with freemium model. Users practice int
    - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anon key
    - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
-   - `ANTHROPIC_API_KEY`: Your Anthropic API key
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `RAZORPAY_KEY_ID`: Your Razorpay key ID (for payments)
+   - `RAZORPAY_KEY_SECRET`: Your Razorpay key secret
 
 4. **Seed the database**
    ```bash
@@ -227,7 +231,8 @@ jobgyani/
 │   └── dashboard/           # Dashboard-specific components
 ├── lib/
 │   ├── supabase/            # Supabase clients
-│   ├── anthropic.ts         # Claude AI integration
+│   ├── openai.ts            # OpenAI GPT-4 integration
+│   ├── razorpay.ts          # Razorpay payment integration
 │   └── utils.ts             # Utility functions
 ├── scripts/
 │   └── seed-questions.ts    # Database seeding
@@ -247,8 +252,8 @@ jobgyani/
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth
 - **Storage**: Supabase Storage
-- **AI**: Anthropic Claude 3.5 Sonnet
-- **Payments**: Stripe (to be integrated)
+- **AI**: OpenAI GPT-4
+- **Payments**: Razorpay
 - **Deployment**: Vercel (recommended)
 
 ## 📊 Database Schema
@@ -274,7 +279,7 @@ jobgyani/
 1. User logs in
 2. System shows today's assigned question
 3. User types answer (min 100 characters)
-4. Submit triggers Claude AI analysis
+4. Submit triggers OpenAI GPT-4 analysis
 5. Receives detailed feedback:
    - Confidence score
    - STAR method check
@@ -304,7 +309,7 @@ Each answer receives:
 1. Build Resume Check feature
 2. Create Question Library interface
 3. Complete Landing Page
-4. Integrate Stripe payments
+4. Integrate Razorpay payments
 
 ### Medium Term
 5. Build Interview Gym
@@ -349,7 +354,8 @@ ISC
 Built with:
 - [Next.js](https://nextjs.org/)
 - [Supabase](https://supabase.com/)
-- [Anthropic Claude](https://anthropic.com/)
+- [OpenAI](https://openai.com/)
+- [Razorpay](https://razorpay.com/)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
 
