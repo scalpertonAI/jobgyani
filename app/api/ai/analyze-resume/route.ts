@@ -116,23 +116,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user profile for free check usage
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('free_resume_check_used, subscription_tier')
-      .eq('id', user.id)
-      .single();
-
-    const isPro = profile?.subscription_tier === 'sprint' || profile?.subscription_tier === 'pro';
-
-    // Check if user has already used free check
-    if (!isPro && profile?.free_resume_check_used) {
-      return NextResponse.json(
-        { error: 'Free resume check already used. Upgrade to analyze more resumes.' },
-        { status: 403 }
-      );
-    }
-
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -204,19 +187,11 @@ export async function POST(request: NextRequest) {
       file_name: file.name,
       file_path: filePath,
       analysis_results: analysis,
-      is_free_check: !isPro,
+      is_free_check: false, // All checks are free for now
     });
 
     if (insertError) {
       console.error('Database insert error:', insertError);
-    }
-
-    // Mark free check as used if this was a free user
-    if (!isPro && !profile?.free_resume_check_used) {
-      await supabase
-        .from('profiles')
-        .update({ free_resume_check_used: true })
-        .eq('id', user.id);
     }
 
     return NextResponse.json({ success: true, analysis });

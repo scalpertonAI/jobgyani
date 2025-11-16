@@ -94,25 +94,19 @@ export default function DashboardNav({ user, profile }: DashboardNavProps) {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
-              const canAccess = item.free || isPro;
 
               return (
                 <Link
                   key={item.href}
-                  href={canAccess ? item.href : "/pricing"}
+                  href={item.href}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-blue-50 text-blue-600"
                       : "text-gray-700 hover:bg-gray-100"
-                  } ${!canAccess ? "opacity-60" : ""}`}
+                  }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
-                  {!item.free && !isPro && (
-                    <Badge variant="secondary" className="text-xs">
-                      Pro
-                    </Badge>
-                  )}
                 </Link>
               );
             })}
@@ -120,19 +114,6 @@ export default function DashboardNav({ user, profile }: DashboardNavProps) {
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
-            {!isPro && (
-              <Link href="/pricing">
-                <Button size="sm" variant="default">
-                  Upgrade to Pro
-                </Button>
-              </Link>
-            )}
-
-            {isPro && (
-              <Badge variant="success" className="text-xs">
-                {profile.subscription_tier === "sprint" ? "Sprint" : "Pro"}
-              </Badge>
-            )}
 
             <div className="flex items-center space-x-2">
               <Link href="/settings">
@@ -153,25 +134,19 @@ export default function DashboardNav({ user, profile }: DashboardNavProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
-            const canAccess = item.free || isPro;
 
             return (
               <Link
                 key={item.href}
-                href={canAccess ? item.href : "/pricing"}
+                href={item.href}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-blue-50 text-blue-600"
                     : "text-gray-700 hover:bg-gray-100"
-                } ${!canAccess ? "opacity-60" : ""}`}
+                }`}
               >
                 <Icon className="h-4 w-4" />
                 <span>{item.label}</span>
-                {!item.free && !isPro && (
-                  <Badge variant="secondary" className="text-xs ml-auto">
-                    Pro
-                  </Badge>
-                )}
               </Link>
             );
           })}

@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ApplicationTrackerClient from "@/components/application-tracker/ApplicationTrackerClient";
-import UpgradePrompt from "@/components/UpgradePrompt";
 
 export default async function ApplicationTrackerPage() {
   const supabase = await createClient();
@@ -14,34 +13,7 @@ export default async function ApplicationTrackerPage() {
     redirect("/login");
   }
 
-  // Get user profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  const isPro = profile?.subscription_tier === "sprint" || profile?.subscription_tier === "pro";
-
-  // Show upgrade prompt for free users
-  if (!isPro) {
-    return (
-      <UpgradePrompt
-        feature="Application Tracker"
-        description="Track all your job applications and never miss a follow-up"
-        benefits={[
-          "Track unlimited job applications",
-          "Automatic follow-up reminders",
-          "Application status pipeline",
-          "Interview scheduling",
-          "AI-generated follow-up emails",
-          "Analytics and insights",
-        ]}
-      />
-    );
-  }
-
-  // Fetch user's applications
+  // Fetch user's applications (free for now)
   const { data: applications } = await supabase
     .from("job_applications")
     .select("*")

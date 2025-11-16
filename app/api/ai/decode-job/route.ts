@@ -15,23 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check subscription
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_tier')
-      .eq('id', user.id)
-      .single();
-
-    const isPro = profile?.subscription_tier === 'sprint' || profile?.subscription_tier === 'pro';
-
-    if (!isPro) {
-      return NextResponse.json(
-        { error: 'This feature requires a Pro subscription' },
-        { status: 403 }
-      );
-    }
-
-    // Get request body
+    // Get request body (free for now)
     const body = await request.json();
     const { jobDescription } = body;
 

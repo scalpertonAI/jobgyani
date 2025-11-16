@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import InterviewGymClient from "@/components/interview-gym/InterviewGymClient";
-import UpgradePrompt from "@/components/UpgradePrompt";
 
 export default async function InterviewGymPage() {
   const supabase = await createClient();
@@ -14,33 +13,7 @@ export default async function InterviewGymPage() {
     redirect("/login");
   }
 
-  // Get user profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  const isPro = profile?.subscription_tier === "sprint" || profile?.subscription_tier === "pro";
-
-  // Show upgrade prompt for free users
-  if (!isPro) {
-    return (
-      <UpgradePrompt
-        feature="Interview Gym"
-        description="Practice unlimited interview questions with AI feedback"
-        benefits={[
-          "Unlimited practice questions",
-          "AI-powered feedback on every answer",
-          "Audio response analysis",
-          "Track your progress over time",
-          "Custom question categories",
-        ]}
-      />
-    );
-  }
-
-  // Fetch all questions for pro users
+  // Fetch all questions for all users (free for now)
   const { data: questions } = await supabase
     .from("interview_questions")
     .select("*")
