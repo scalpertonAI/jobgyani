@@ -187,3 +187,195 @@ Respond in JSON format with this exact structure:
 
   return JSON.parse(content);
 }
+
+export interface ATSAnalysis {
+  missing_sections: string[];
+  formatting_issues: string[];
+  keyword_optimization: {
+    missing_keywords: string[];
+    weak_keywords: string[];
+    strong_keywords: string[];
+  };
+  recommendations: string[];
+  ats_compatibility_score: number; // 0-100
+}
+
+export async function analyzeATSCompliance(
+  resumeText: string,
+  jobDescription?: string
+): Promise<ATSAnalysis> {
+  const prompt = `You are an ATS (Applicant Tracking System) expert. Analyze this resume for ATS compatibility.
+
+Resume content:
+${resumeText}
+
+${jobDescription ? `Job Description:\n${jobDescription}\n` : ''}
+
+Provide detailed ATS analysis:
+1. Missing sections (e.g., Summary, Skills, Experience, Education, Certifications, Projects)
+2. Formatting issues (e.g., tables, columns, graphics, special characters, inconsistent formatting)
+3. Keyword optimization:
+   - Missing keywords ${jobDescription ? 'from the job description' : 'that are industry-standard'}
+   - Weak keywords (present but need strengthening)
+   - Strong keywords (already optimized)
+4. Specific recommendations to improve ATS score (5-7 actionable items)
+5. Overall ATS compatibility score (0-100)
+
+Respond in JSON format with this exact structure:
+{
+  "missing_sections": ["section1", "section2", ...],
+  "formatting_issues": ["issue1", "issue2", ...],
+  "keyword_optimization": {
+    "missing_keywords": ["keyword1", "keyword2", ...],
+    "weak_keywords": ["keyword1", "keyword2", ...],
+    "strong_keywords": ["keyword1", "keyword2", ...]
+  },
+  "recommendations": ["rec1", "rec2", ...],
+  "ats_compatibility_score": number
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an ATS expert. Always respond with valid JSON only, no additional text.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.7,
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error('No response from OpenAI');
+  }
+
+  return JSON.parse(content);
+}
+
+export interface ATSFormattedResume {
+  formatted_resume: string; // Plain text ATS-friendly resume
+  changes_made: string[];
+  improvements: string[];
+}
+
+export async function generateATSResume(
+  resumeText: string
+): Promise<ATSFormattedResume> {
+  const prompt = `You are an expert resume writer specializing in ATS-optimized resumes.
+
+Original resume:
+${resumeText}
+
+Convert this resume into an ATS-friendly format following these rules:
+1. Use simple, clean formatting (no tables, columns, or graphics)
+2. Use standard section headings (Summary, Skills, Experience, Education, Certifications, Projects)
+3. Use standard fonts and bullet points
+4. Optimize keywords naturally (no keyword stuffing)
+5. Use clear date formats (MM/YYYY)
+6. Include measurable achievements with metrics
+7. Keep reverse chronological order
+8. Remove any special characters or symbols that ATS might not parse
+9. Use standard job titles and industry terminology
+10. Ensure consistent formatting throughout
+
+Provide:
+1. The complete ATS-formatted resume in plain text
+2. List of changes made
+3. List of improvements for better ATS parsing
+
+Respond in JSON format with this exact structure:
+{
+  "formatted_resume": "complete resume text",
+  "changes_made": ["change1", "change2", ...],
+  "improvements": ["improvement1", "improvement2", ...]
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an expert resume writer specializing in ATS optimization. Always respond with valid JSON only, no additional text.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.7,
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error('No response from OpenAI');
+  }
+
+  return JSON.parse(content);
+}
+
+export async function generateJobTailoredATSResume(
+  resumeText: string,
+  jobDescription: string
+): Promise<ATSFormattedResume> {
+  const prompt = `You are an expert resume writer specializing in ATS-optimized, job-tailored resumes.
+
+Original resume:
+${resumeText}
+
+Job Description:
+${jobDescription}
+
+Convert this resume into an ATS-friendly format tailored to this specific job description, following these rules:
+1. Use simple, clean formatting (no tables, columns, or graphics)
+2. Use standard section headings (Summary, Skills, Experience, Education, Certifications, Projects)
+3. Incorporate relevant keywords from the job description naturally
+4. Highlight experience and skills that match the job requirements
+5. Reframe achievements to align with the job's focus areas
+6. Use metrics and quantifiable results where possible
+7. Adjust the professional summary to match the role
+8. Prioritize relevant skills from the job description
+9. Keep reverse chronological order
+10. Ensure ATS-friendly formatting throughout
+
+Provide:
+1. The complete ATS-formatted, job-tailored resume in plain text
+2. List of changes made to align with the job description
+3. List of improvements for better ATS parsing and job matching
+
+Respond in JSON format with this exact structure:
+{
+  "formatted_resume": "complete tailored resume text",
+  "changes_made": ["change1", "change2", ...],
+  "improvements": ["improvement1", "improvement2", ...]
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an expert resume writer specializing in ATS optimization and job tailoring. Always respond with valid JSON only, no additional text.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.7,
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) {
+    throw new Error('No response from OpenAI');
+  }
+
+  return JSON.parse(content);
+}

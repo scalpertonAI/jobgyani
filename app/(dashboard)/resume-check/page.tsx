@@ -6,15 +6,37 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, CheckCircle2, AlertCircle, TrendingUp, Lightbulb } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertCircle, TrendingUp, Lightbulb, Download, Wand2, Target } from "lucide-react";
 import type { ResumeAnalysis } from "@/lib/openai";
 import Link from "next/link";
+
+interface ATSAnalysis {
+  missing_sections: string[];
+  formatting_issues: string[];
+  keyword_optimization: {
+    missing_keywords: string[];
+    weak_keywords: string[];
+    strong_keywords: string[];
+  };
+  recommendations: string[];
+  ats_compatibility_score: number;
+}
+
+interface ATSFormattedResume {
+  formatted_resume: string;
+  changes_made: string[];
+  improvements: string[];
+}
 
 export default function ResumeCheckPage() {
   const [file, setFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingATS, setLoadingATS] = useState(false);
+  const [loadingGenerate, setLoadingGenerate] = useState(false);
+  const [loadingTailored, setLoadingTailored] = useState(false);
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
+  const [atsAnalysis, setAtsAnalysis] = useState<ATSAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,12 +105,141 @@ export default function ResumeCheckPage() {
     }
   };
 
+  const handleATSAnalysis = async () => {
+    if (!file) {
+      setError('Please select a file');
+      return;
+    }
+
+    setLoadingATS(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (jobDescription.trim()) {
+        formData.append('jobDescription', jobDescription.trim());
+      }
+
+      const response = await fetch('/api/ai/analyze-ats', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to analyze ATS compliance');
+      }
+
+      setAtsAnalysis(result.analysis);
+    } catch (err: any) {
+      setError(err.message || 'Failed to analyze ATS compliance');
+    } finally {
+      setLoadingATS(false);
+    }
+  };
+
+  const handleGenerateATSResume = async () => {
+    if (!file) {
+      setError('Please select a file');
+      return;
+    }
+
+    setLoadingGenerate(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/ai/generate-ats-resume', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate ATS resume');
+      }
+
+      const atsResult: ATSFormattedResume = result.result;
+
+      // Download the formatted resume
+      downloadResume(atsResult.formatted_resume, 'ATS_Formatted_Resume.txt');
+
+      // Show success message
+      alert(`Resume converted successfully!\n\nChanges made:\n${atsResult.changes_made.slice(0, 3).join('\n')}\n\nDownloading...`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate ATS resume');
+    } finally {
+      setLoadingGenerate(false);
+    }
+  };
+
+  const handleGenerateTailoredResume = async () => {
+    if (!file) {
+      setError('Please select a file');
+      return;
+    }
+
+    if (!jobDescription.trim() || jobDescription.trim().length < 100) {
+      setError('Please provide a job description (at least 100 characters) to tailor your resume');
+      return;
+    }
+
+    setLoadingTailored(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('jobDescription', jobDescription.trim());
+
+      const response = await fetch('/api/ai/generate-tailored-resume', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate tailored resume');
+      }
+
+      const tailoredResult: ATSFormattedResume = result.result;
+
+      // Download the formatted resume
+      downloadResume(tailoredResult.formatted_resume, 'Job_Tailored_ATS_Resume.txt');
+
+      // Show success message
+      alert(`Resume tailored successfully!\n\nChanges made:\n${tailoredResult.changes_made.slice(0, 3).join('\n')}\n\nDownloading...`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate tailored resume');
+    } finally {
+      setLoadingTailored(false);
+    }
+  };
+
+  const downloadResume = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Resume Analysis</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Resume Analysis & ATS Optimizer</h1>
         <p className="text-gray-600 mt-1">
-          Get AI-powered feedback to improve your resume and beat ATS systems
+          Get AI-powered feedback, ATS analysis, and generate optimized resumes tailored to your target job
         </p>
       </div>
 
@@ -143,7 +294,7 @@ export default function ResumeCheckPage() {
             {/* Job Description (Optional) */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Job Description (Optional)
+                Job Description (Optional - Required for tailored resume)
               </label>
               <Textarea
                 value={jobDescription}
@@ -153,7 +304,7 @@ export default function ResumeCheckPage() {
                 disabled={loading}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Get keyword recommendations specific to this job posting
+                Get keyword recommendations specific to this job posting and generate a tailored resume
               </p>
             </div>
 
@@ -163,11 +314,6 @@ export default function ResumeCheckPage() {
                 <div>
                   <p className="text-sm font-medium text-red-800">Error</p>
                   <p className="text-sm text-red-600">{error}</p>
-                  {error.includes('Free resume check already used') && (
-                    <Link href="/pricing" className="text-sm text-red-700 underline mt-2 inline-block">
-                      Upgrade to Pro for unlimited checks
-                    </Link>
-                  )}
                 </div>
               </div>
             )}
@@ -202,6 +348,7 @@ export default function ResumeCheckPage() {
                   variant="outline"
                   onClick={() => {
                     setAnalysis(null);
+                    setAtsAnalysis(null);
                     setFile(null);
                     setJobDescription('');
                   }}
@@ -212,7 +359,193 @@ export default function ResumeCheckPage() {
             </CardHeader>
           </Card>
 
-          {/* ATS Score */}
+          {/* ATS Tools Section */}
+          <Card className="border-2 border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-900">
+                <Wand2 className="h-5 w-5" />
+                ATS Optimization Tools
+              </CardTitle>
+              <CardDescription className="text-blue-700">
+                Generate ATS-optimized versions of your resume
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  onClick={handleATSAnalysis}
+                  disabled={loadingATS}
+                  className="w-full"
+                  variant="default"
+                >
+                  {loadingATS ? 'Analyzing...' : '📋 Detailed ATS Analysis'}
+                </Button>
+
+                <Button
+                  onClick={handleGenerateATSResume}
+                  disabled={loadingGenerate}
+                  className="w-full"
+                  variant="default"
+                >
+                  {loadingGenerate ? 'Generating...' : <><Download className="h-4 w-4 mr-2" />Convert to ATS Format</>}
+                </Button>
+              </div>
+
+              {jobDescription.trim().length >= 100 && (
+                <Button
+                  onClick={handleGenerateTailoredResume}
+                  disabled={loadingTailored}
+                  className="w-full"
+                  variant="outline"
+                  size="lg"
+                >
+                  {loadingTailored ? 'Generating...' : (
+                    <>
+                      <Target className="h-4 w-4 mr-2" />
+                      <Download className="h-4 w-4 mr-2" />
+                      Generate Job-Tailored ATS Resume
+                    </>
+                  )}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Detailed ATS Analysis */}
+          {atsAnalysis && (
+            <>
+              <Card className="border-2 border-purple-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-purple-600" />
+                    Detailed ATS Compatibility Analysis
+                  </CardTitle>
+                  <CardDescription>
+                    Comprehensive breakdown of ATS compatibility
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="flex-1">
+                      <Progress value={atsAnalysis.ats_compatibility_score} className="h-4" />
+                    </div>
+                    <div className="text-3xl font-bold text-purple-600">
+                      {atsAnalysis.ats_compatibility_score}/100
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    {/* Missing Sections */}
+                    {atsAnalysis.missing_sections.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-red-600" />
+                          Missing Sections
+                        </h4>
+                        <ul className="space-y-2">
+                          {atsAnalysis.missing_sections.map((section, idx) => (
+                            <li key={idx} className="text-sm bg-red-50 p-2 rounded">
+                              {section}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Formatting Issues */}
+                    {atsAnalysis.formatting_issues.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-orange-600" />
+                          Formatting Issues
+                        </h4>
+                        <ul className="space-y-2">
+                          {atsAnalysis.formatting_issues.map((issue, idx) => (
+                            <li key={idx} className="text-sm bg-orange-50 p-2 rounded">
+                              {issue}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Keyword Optimization */}
+                  <div className="mt-6 space-y-4">
+                    <h4 className="font-semibold text-sm">Keyword Optimization</h4>
+
+                    {atsAnalysis.keyword_optimization.strong_keywords.length > 0 && (
+                      <div>
+                        <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          Strong Keywords (Keep these!)
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {atsAnalysis.keyword_optimization.strong_keywords.map((keyword, idx) => (
+                            <Badge key={idx} className="bg-green-100 text-green-800">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {atsAnalysis.keyword_optimization.weak_keywords.length > 0 && (
+                      <div>
+                        <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 text-yellow-600" />
+                          Weak Keywords (Need strengthening)
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {atsAnalysis.keyword_optimization.weak_keywords.map((keyword, idx) => (
+                            <Badge key={idx} className="bg-yellow-100 text-yellow-800">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {atsAnalysis.keyword_optimization.missing_keywords.length > 0 && (
+                      <div>
+                        <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3 text-red-600" />
+                          Missing Keywords (Add these!)
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {atsAnalysis.keyword_optimization.missing_keywords.map((keyword, idx) => (
+                            <Badge key={idx} className="bg-red-100 text-red-800">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recommendations */}
+                  {atsAnalysis.recommendations.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-blue-600" />
+                        ATS Optimization Recommendations
+                      </h4>
+                      <ul className="space-y-2">
+                        {atsAnalysis.recommendations.map((rec, idx) => (
+                          <li key={idx} className="text-sm bg-blue-50 p-3 rounded flex items-start gap-2">
+                            <span className="text-blue-600 font-bold">{idx + 1}.</span>
+                            <span>{rec}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* Original ATS Score */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -347,6 +680,7 @@ export default function ResumeCheckPage() {
               className="flex-1"
               onClick={() => {
                 setAnalysis(null);
+                setAtsAnalysis(null);
                 setFile(null);
                 setJobDescription('');
               }}
