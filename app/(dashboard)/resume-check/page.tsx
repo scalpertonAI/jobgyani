@@ -232,32 +232,256 @@ export default function ResumeCheckPage() {
         format: 'a4',
       });
 
-      // Set font and size
-      doc.setFont('helvetica');
-      doc.setFontSize(10);
-
       // Page dimensions
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 15;
-      const maxLineWidth = pageWidth - (margin * 2);
+      const leftMargin = 15;
+      const rightMargin = 15;
+      const maxLineWidth = pageWidth - leftMargin - rightMargin;
 
-      // Split content into lines and handle page breaks
-      const lines = doc.splitTextToSize(content, maxLineWidth);
+      let cursorY = 15;
+      const bottomMargin = 15;
 
-      let cursorY = margin;
-      const lineHeight = 5;
-
-      lines.forEach((line: string) => {
-        // Check if we need a new page
-        if (cursorY + lineHeight > pageHeight - margin) {
+      // Helper function to check if we need a new page
+      const checkPageBreak = (requiredSpace: number) => {
+        if (cursorY + requiredSpace > pageHeight - bottomMargin) {
           doc.addPage();
-          cursorY = margin;
+          cursorY = 15;
+          return true;
+        }
+        return false;
+      };
+
+      // Helper function to add text with word wrap
+      const addText = (text: string, x: number, y: number, maxWidth: number, fontSize: number, style: 'normal' | 'bold' = 'normal') => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', style);
+        const lines = doc.splitTextToSize(text, maxWidth);
+
+        lines.forEach((line: string, index: number) => {
+          if (index > 0) {
+            checkPageBreak(5);
+          }
+          doc.text(line, x, y + (index * 5));
+        });
+
+        return y + (lines.length * 5);
+      };
+
+      // Parse the resume content into sections
+      const lines = content.split('\n');
+      let currentSection = '';
+      let isFirstLine = true;
+      let nameDetected = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        if (!line) {
+          cursorY += 3; // Small spacing for empty lines
+          continue;
         }
 
-        doc.text(line, margin, cursorY);
-        cursorY += lineHeight;
-      });
+        // Detect if this is the name (first substantial line, usually all caps or title case)
+        if (!nameDetected && isFirstLine && line.length > 2 && line.length < 50) {
+          checkPageBreak(15);
+
+          // Name - Large and bold
+          doc.setFontSize(18);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(20, 20, 20);
+          doc.text(line, leftMargin, cursorY);
+          cursorY += 8;
+
+          // Add a subtle line under the name
+          doc.setDrawColor(100, 100, 100);
+          doc.setLineWidth(0.3);
+          doc.line(leftMargin, cursorY, pageWidth - rightMargin, cursorY);
+          cursorY += 5;
+
+          nameDetected = true;
+          isFirstLine = false;
+          continue;
+        }
+
+        isFirstLine = false;
+
+        // Detect contact information (email, phone, address, LinkedIn)
+        const isContactInfo = line.match(/@/) ||
+                             line.match(/\(\d{3}\)/) ||
+                             line.match(/\d{3}-\d{3}-\d{4}/) ||
+                             line.match(/linkedin\.com/) ||
+                             line.match(/github\.com/) ||
+                             (line.length < 100 && i < 5 && (line.includes(',') || line.includes('|')));
+
+        if (isContactInfo && cursorY < 50) {
+          checkPageBreak(6);
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(60, 60, 60);
+
+          // Center align contact info or left align
+          const contactLines = doc.splitTextToSize(line, maxLineWidth);
+          contactLines.forEach((contactLine: string) => {
+            doc.text(contactLine, leftMargin, cursorY);
+            cursorY += 4.5;
+          });
+          cursorY += 2;
+          continue;
+        }
+
+        // Detect section headers (SUMMARY, EXPERIENCE, EDUCATION, SKILLS, etc.)
+        const sectionHeaders = [
+          'PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE',
+          'WORK EXPERIENCE', 'PROFESSIONAL EXPERIENCE', 'EXPERIENCE',
+          'EDUCATION', 'ACADEMIC BACKGROUND',
+          'SKILLS', 'TECHNICAL SKILLS', 'CORE COMPETENCIES',
+          'CERTIFICATIONS', 'CERTIFICATES',
+          'PROJECTS', 'KEY PROJECTS',
+          'ACHIEVEMENTS', 'ACCOMPLISHMENTS',
+          'LANGUAGES',
+          'VOLUNTEER EXPERIENCE', 'VOLUNTEER WORK'
+        ];
+
+        const isSectionHeader = sectionHeaders.some(header =>
+          line.toUpperCase() === header ||
+          line.toUpperCase().startsWith(header + ':') ||
+          (line.length < 50 && line === line.toUpperCase() && line.length > 3)
+        );
+
+        if (isSectionHeader) {
+          checkPageBreak(12);
+          cursorY += 4; // Extra space before section
+
+          // Section header - Bold and larger with background
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(30, 30, 30);
+
+          // Add a subtle background rectangle
+          doc.setFillColor(240, 240, 240);
+          doc.rect(leftMargin - 2, cursorY - 5, maxLineWidth + 4, 7, 'F');
+
+          doc.text(line, leftMargin, cursorY);
+          cursorY += 8;
+
+          currentSection = line;
+          continue;
+        }
+
+        // Detect job titles or degree (bold formatting)
+        const isJobTitle = line.match(/^[A-Z]/) &&
+                          line.length < 80 &&
+                          !line.startsWith('•') &&
+                          !line.startsWith('-') &&
+                          !line.match(/^\d+\./) &&
+                          (line.includes('Engineer') ||
+                           line.includes('Developer') ||
+                           line.includes('Manager') ||
+                           line.includes('Analyst') ||
+                           line.includes('Director') ||
+                           line.includes('Lead') ||
+                           line.includes('Specialist') ||
+                           line.includes('Bachelor') ||
+                           line.includes('Master') ||
+                           line.includes('Degree') ||
+                           (i > 0 && lines[i+1]?.includes('|') || lines[i+1]?.match(/\d{4}/)));
+
+        if (isJobTitle && currentSection.includes('EXPERIENCE') || currentSection.includes('EDUCATION')) {
+          checkPageBreak(10);
+          cursorY += 2;
+
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(40, 40, 40);
+          const splitTitle = doc.splitTextToSize(line, maxLineWidth);
+          splitTitle.forEach((titleLine: string) => {
+            doc.text(titleLine, leftMargin, cursorY);
+            cursorY += 5;
+          });
+          continue;
+        }
+
+        // Detect company/university and dates (italic)
+        const hasDate = line.match(/\d{4}/) || line.match(/Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/);
+        const hasPipe = line.includes('|');
+        const isCompanyLine = (hasDate || hasPipe) && line.length < 100 && !line.startsWith('•') && !line.startsWith('-');
+
+        if (isCompanyLine) {
+          checkPageBreak(6);
+
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'italic');
+          doc.setTextColor(80, 80, 80);
+
+          const splitCompany = doc.splitTextToSize(line, maxLineWidth);
+          splitCompany.forEach((companyLine: string) => {
+            doc.text(companyLine, leftMargin, cursorY);
+            cursorY += 4.5;
+          });
+          cursorY += 1;
+          continue;
+        }
+
+        // Detect bullet points
+        const isBullet = line.startsWith('•') ||
+                        line.startsWith('-') ||
+                        line.startsWith('*') ||
+                        line.match(/^\d+\./);
+
+        if (isBullet) {
+          checkPageBreak(7);
+
+          // Remove bullet character and trim
+          let bulletText = line.replace(/^[•\-*]\s*/, '').replace(/^\d+\.\s*/, '');
+
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(50, 50, 50);
+
+          // Add custom bullet point
+          doc.setFontSize(14);
+          doc.text('•', leftMargin + 2, cursorY);
+
+          // Add bullet text with proper indentation
+          doc.setFontSize(10);
+          const bulletLines = doc.splitTextToSize(bulletText, maxLineWidth - 8);
+          bulletLines.forEach((bulletLine: string, idx: number) => {
+            doc.text(bulletLine, leftMargin + 7, cursorY + (idx * 4.5));
+          });
+          cursorY += bulletLines.length * 4.5 + 1.5;
+          continue;
+        }
+
+        // Regular paragraph text
+        checkPageBreak(10);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(50, 50, 50);
+
+        const regularLines = doc.splitTextToSize(line, maxLineWidth);
+        regularLines.forEach((regLine: string) => {
+          doc.text(regLine, leftMargin, cursorY);
+          cursorY += 4.5;
+        });
+        cursorY += 1;
+      }
+
+      // Add footer with page numbers
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+          `Page ${i} of ${pageCount}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+      }
 
       // Save the PDF
       doc.save(filename);
