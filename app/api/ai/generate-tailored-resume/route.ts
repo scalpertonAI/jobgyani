@@ -9,8 +9,6 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
     const data = await pdfParse(buffer, {
       max: 0,
-      version: 'v1.10.100',
-      pagerender: undefined,
     });
 
     console.log('PDF parsed - pages:', data.numpages, 'text length:', data.text?.length);

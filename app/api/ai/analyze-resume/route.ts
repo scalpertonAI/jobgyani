@@ -16,12 +16,9 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     console.log('pdf-parse type:', typeof pdfParse);
     console.log('pdf-parse is function:', typeof pdfParse === 'function');
 
-    // Parse the PDF with additional options for better compatibility
+    // Parse the PDF
     const data = await pdfParse(buffer, {
       max: 0, // Parse all pages
-      version: 'v1.10.100', // Specify version for compatibility
-      // Add more lenient parsing options
-      pagerender: undefined, // Use default rendering
     });
 
     console.log('PDF parsed successfully');
