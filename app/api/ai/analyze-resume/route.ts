@@ -4,62 +4,69 @@ import { analyzeResume } from '@/lib/openai';
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    console.log('Starting PDF extraction, buffer size:', buffer.length);
+    console.log('=== PDF EXTRACTION START ===');
+    console.log('Buffer size:', buffer.length);
+    console.log('Is Buffer:', Buffer.isBuffer(buffer));
+    console.log('First 10 bytes:', buffer.slice(0, 10));
+
+    if (!Buffer.isBuffer(buffer)) {
+      throw new Error('Invalid buffer - not a Buffer object');
+    }
 
     if (buffer.length === 0) {
       throw new Error('Empty PDF buffer');
     }
 
-    // Use require for CommonJS modules in Node.js environment
+    // Check if buffer starts with PDF header
+    const header = buffer.toString('utf8', 0, 4);
+    console.log('File header:', header);
+
+    if (!header.startsWith('%PDF')) {
+      throw new Error('Invalid PDF file - missing PDF header');
+    }
+
+    // Dynamically require pdf-parse
     const pdfParse = require('pdf-parse');
+    console.log('pdf-parse loaded, type:', typeof pdfParse);
 
-    console.log('pdf-parse type:', typeof pdfParse);
-    console.log('pdf-parse is function:', typeof pdfParse === 'function');
+    // Call pdf-parse with just the buffer
+    console.log('Calling pdf-parse...');
+    const data = await pdfParse(buffer);
 
-    // Parse the PDF
-    const data = await pdfParse(buffer, {
-      max: 0, // Parse all pages
-    });
-
-    console.log('PDF parsed successfully');
-    console.log('Number of pages:', data.numpages);
+    console.log('PDF parsed successfully!');
+    console.log('Pages:', data.numpages);
     console.log('Text length:', data.text?.length || 0);
-    console.log('First 200 chars:', data.text?.substring(0, 200) || 'No text');
+    console.log('Text preview:', data.text?.substring(0, 100));
 
     if (!data.text || data.text.trim().length === 0) {
-      throw new Error('No text content found in PDF. The PDF might be image-based or empty.');
+      throw new Error('No text content found in PDF. This might be an image-based PDF that needs OCR.');
     }
 
     // Clean up the text
     const cleanedText = data.text
-      .replace(/\r\n/g, '\n') // Normalize line endings
-      .replace(/\n{3,}/g, '\n\n') // Remove excessive newlines
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
 
     console.log('Cleaned text length:', cleanedText.length);
+    console.log('=== PDF EXTRACTION SUCCESS ===');
 
     return cleanedText;
   } catch (error: any) {
-    console.error('Error parsing PDF:', error);
-    console.error('Error name:', error.name);
+    console.error('=== PDF EXTRACTION FAILED ===');
+    console.error('Error type:', error.constructor.name);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
-    console.error('Error code:', error.code);
 
-    // Provide more helpful error messages based on the actual error
-    if (error.message?.includes('Invalid PDF')) {
-      throw new Error('Invalid or corrupted PDF file. Please try a different file.');
-    } else if (error.message?.includes('encrypted') || error.message?.includes('password')) {
-      throw new Error('This PDF is password-protected. Please upload an unprotected version.');
+    // Better error messages
+    if (error.message?.includes('Invalid PDF file')) {
+      throw new Error('This file is not a valid PDF. Please check the file and try again.');
     } else if (error.message?.includes('No text content')) {
-      throw new Error(error.message);
-    } else if (error.name === 'TypeError' && error.message?.includes('not a function')) {
-      console.error('pdf-parse is not a function! This is a module issue.');
-      throw new Error('PDF parsing library error. Please try uploading a DOCX or TXT file instead.');
+      throw new Error('This PDF appears to be image-based or scanned. Please convert it to a text-based PDF or use a DOCX file.');
+    } else if (error.code === 'ENOENT') {
+      throw new Error('PDF parsing library error. Please try converting your resume to DOCX format.');
     } else {
-      // Return the actual error message for debugging
-      const debugMessage = `PDF parsing failed: ${error.message || 'Unknown error'}. Please try converting to DOCX or TXT format.`;
-      throw new Error(debugMessage);
+      throw new Error(`PDF parsing failed: ${error.message}`);
     }
   }
 }

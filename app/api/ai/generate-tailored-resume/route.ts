@@ -4,29 +4,25 @@ import { generateJobTailoredATSResume } from '@/lib/openai';
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    console.log('PDF extraction - buffer size:', buffer.length);
+    if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+      throw new Error('Invalid PDF buffer');
+    }
+
+    const header = buffer.toString('utf8', 0, 4);
+    if (!header.startsWith('%PDF')) {
+      throw new Error('Invalid PDF file');
+    }
+
     const pdfParse = require('pdf-parse');
-
-    const data = await pdfParse(buffer, {
-      max: 0,
-    });
-
-    console.log('PDF parsed - pages:', data.numpages, 'text length:', data.text?.length);
+    const data = await pdfParse(buffer);
 
     if (!data.text || data.text.trim().length === 0) {
       throw new Error('No text content found in PDF');
     }
 
-    const cleanedText = data.text
-      .replace(/\r\n/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-
-    return cleanedText;
+    return data.text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   } catch (error: any) {
-    console.error('PDF parsing error:', error.message);
-    const debugMessage = `PDF parsing failed: ${error.message || 'Unknown error'}`;
-    throw new Error(debugMessage);
+    throw new Error(`PDF parsing failed: ${error.message}`);
   }
 }
 
