@@ -13,32 +13,56 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     // Use require for CommonJS modules in Node.js environment
     const pdfParse = require('pdf-parse');
 
-    // Parse the PDF
+    console.log('pdf-parse type:', typeof pdfParse);
+    console.log('pdf-parse is function:', typeof pdfParse === 'function');
+
+    // Parse the PDF with additional options for better compatibility
     const data = await pdfParse(buffer, {
       max: 0, // Parse all pages
+      version: 'v1.10.100', // Specify version for compatibility
+      // Add more lenient parsing options
+      pagerender: undefined, // Use default rendering
     });
 
-    console.log('PDF parsed successfully, text length:', data.text?.length || 0);
+    console.log('PDF parsed successfully');
     console.log('Number of pages:', data.numpages);
+    console.log('Text length:', data.text?.length || 0);
+    console.log('First 200 chars:', data.text?.substring(0, 200) || 'No text');
 
     if (!data.text || data.text.trim().length === 0) {
       throw new Error('No text content found in PDF. The PDF might be image-based or empty.');
     }
 
-    return data.text;
+    // Clean up the text
+    const cleanedText = data.text
+      .replace(/\r\n/g, '\n') // Normalize line endings
+      .replace(/\n{3,}/g, '\n\n') // Remove excessive newlines
+      .trim();
+
+    console.log('Cleaned text length:', cleanedText.length);
+
+    return cleanedText;
   } catch (error: any) {
     console.error('Error parsing PDF:', error);
-    console.error('Error details:', error.message, error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Error code:', error.code);
 
-    // Provide more helpful error messages
+    // Provide more helpful error messages based on the actual error
     if (error.message?.includes('Invalid PDF')) {
       throw new Error('Invalid or corrupted PDF file. Please try a different file.');
-    } else if (error.message?.includes('encrypted')) {
+    } else if (error.message?.includes('encrypted') || error.message?.includes('password')) {
       throw new Error('This PDF is password-protected. Please upload an unprotected version.');
     } else if (error.message?.includes('No text content')) {
       throw new Error(error.message);
+    } else if (error.name === 'TypeError' && error.message?.includes('not a function')) {
+      console.error('pdf-parse is not a function! This is a module issue.');
+      throw new Error('PDF parsing library error. Please try uploading a DOCX or TXT file instead.');
     } else {
-      throw new Error('Failed to extract text from PDF. The file might be corrupted, image-based, or in an unsupported format. Try converting it to DOCX or TXT.');
+      // Return the actual error message for debugging
+      const debugMessage = `PDF parsing failed: ${error.message || 'Unknown error'}. Please try converting to DOCX or TXT format.`;
+      throw new Error(debugMessage);
     }
   }
 }

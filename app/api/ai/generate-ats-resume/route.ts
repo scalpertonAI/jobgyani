@@ -4,16 +4,31 @@ import { generateATSResume } from '@/lib/openai';
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
+    console.log('PDF extraction - buffer size:', buffer.length);
     const pdfParse = require('pdf-parse');
-    const data = await pdfParse(buffer, { max: 0 });
+
+    const data = await pdfParse(buffer, {
+      max: 0,
+      version: 'v1.10.100',
+      pagerender: undefined,
+    });
+
+    console.log('PDF parsed - pages:', data.numpages, 'text length:', data.text?.length);
 
     if (!data.text || data.text.trim().length === 0) {
       throw new Error('No text content found in PDF');
     }
 
-    return data.text;
+    const cleanedText = data.text
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    return cleanedText;
   } catch (error: any) {
-    throw new Error('Failed to extract text from PDF');
+    console.error('PDF parsing error:', error.message);
+    const debugMessage = `PDF parsing failed: ${error.message || 'Unknown error'}`;
+    throw new Error(debugMessage);
   }
 }
 
