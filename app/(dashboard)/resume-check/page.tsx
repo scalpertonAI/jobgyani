@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, CheckCircle2, AlertCircle, TrendingUp, Lightbulb, Download, Wand2, Target } from "lucide-react";
 import type { ResumeAnalysis } from "@/lib/openai";
 import Link from "next/link";
+import { jsPDF } from "jspdf";
 
 interface ATSAnalysis {
   missing_sections: string[];
@@ -167,7 +168,7 @@ export default function ResumeCheckPage() {
       const atsResult: ATSFormattedResume = result.result;
 
       // Download the formatted resume
-      downloadResume(atsResult.formatted_resume, 'ATS_Formatted_Resume.txt');
+      downloadResume(atsResult.formatted_resume, 'ATS_Formatted_Resume.pdf');
 
       // Show success message
       alert(`Resume converted successfully!\n\nChanges made:\n${atsResult.changes_made.slice(0, 3).join('\n')}\n\nDownloading...`);
@@ -211,7 +212,7 @@ export default function ResumeCheckPage() {
       const tailoredResult: ATSFormattedResume = result.result;
 
       // Download the formatted resume
-      downloadResume(tailoredResult.formatted_resume, 'Job_Tailored_ATS_Resume.txt');
+      downloadResume(tailoredResult.formatted_resume, 'Job_Tailored_ATS_Resume.pdf');
 
       // Show success message
       alert(`Resume tailored successfully!\n\nChanges made:\n${tailoredResult.changes_made.slice(0, 3).join('\n')}\n\nDownloading...`);
@@ -223,15 +224,47 @@ export default function ResumeCheckPage() {
   };
 
   const downloadResume = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    try {
+      // Create a new jsPDF instance
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      // Set font and size
+      doc.setFont('helvetica');
+      doc.setFontSize(10);
+
+      // Page dimensions
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const maxLineWidth = pageWidth - (margin * 2);
+
+      // Split content into lines and handle page breaks
+      const lines = doc.splitTextToSize(content, maxLineWidth);
+
+      let cursorY = margin;
+      const lineHeight = 5;
+
+      lines.forEach((line: string) => {
+        // Check if we need a new page
+        if (cursorY + lineHeight > pageHeight - margin) {
+          doc.addPage();
+          cursorY = margin;
+        }
+
+        doc.text(line, margin, cursorY);
+        cursorY += lineHeight;
+      });
+
+      // Save the PDF
+      doc.save(filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
   };
 
   return (
